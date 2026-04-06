@@ -11,21 +11,14 @@
             id="background"
             width="1920"
             height="1080"
-            color="0x09111CFF" />
+            color="0x060B13FF" />
 
-        <Rectangle
-            id="backgroundGlowLeft"
-            width="760"
-            height="760"
-            translation="[-80, -140]"
-            color="0x123E78AA" />
-
-        <Rectangle
-            id="backgroundGlowRight"
-            width="560"
-            height="560"
-            translation="[1480, 640]"
-            color="0x0E7A8F55" />
+        <Poster
+            id="backgroundGradient"
+            width="1920"
+            height="1080"
+            uri="pkg:/images/background-gradient.png"
+            loadDisplayMode="scaleToFill" />
 
         <Video
             id="video"
@@ -54,92 +47,161 @@
                 height="1080"
                 color="0x09111CD6" />
 
-            <Rectangle
-                id="panelShadow"
-                width="1280"
-                height="500"
-                translation="[118, 168]"
-                color="0x04070B99" />
+            <Group id="bootSplashGroup" visible="true">
+                <Poster
+                    id="bootIconPoster"
+                    uri="pkg:/images/ios-icon.png"
+                    translation="[820, 334]"
+                    width="280"
+                    height="280"
+                    loadDisplayMode="scaleToFit" />
+            </Group>
 
-            <Rectangle
-                id="panel"
-                width="1280"
-                height="500"
-                translation="[104, 154]"
-                color="0x13213AF5" />
+            <Group id="standbyGroup" visible="false">
+                <Poster
+                    id="standbyIconPoster"
+                    uri="pkg:/images/ios-icon.png"
+                    translation="[828, 178]"
+                    width="264"
+                    height="264"
+                    loadDisplayMode="scaleToFit" />
 
-            <Rectangle
-                id="panelAccent"
-                width="1280"
-                height="10"
-                translation="[104, 154]"
-                color="0x58CCFFFF" />
+                <Label
+                    id="standbyEyebrowLabel"
+                    translation="[650, 486]"
+                    width="620"
+                    horizAlign="center"
+                    text="TV Screen Mirror & Cast"
+                    color="0x63D6FFFF" />
 
-            <Rectangle
-                id="statusPill"
-                width="220"
-                height="52"
-                translation="[174, 224]"
-                color="0x27405FFF" />
+                <Label
+                    id="standbyTitleLabel"
+                    translation="[390, 554]"
+                    width="1140"
+                    horizAlign="center"
+                    text="Start from your iPhone"
+                    color="0xF4F8FFFF" />
 
-            <BusySpinner
-                id="spinner"
-                translation="[1246, 226]"
-                visible="false" />
+                <Label
+                    id="standbyMessageLabel"
+                    translation="[430, 626]"
+                    width="1060"
+                    horizAlign="center"
+                    text="Open Screen Mirroring: TV Air Cast on your iPhone to begin."
+                    color="0xD7E4F7FF" />
 
-            <Label
-                id="statusLabel"
-                translation="[204, 236]"
-                width="170"
-                text="Standby"
-                color="0xF4F8FFFF" />
+                <Label
+                    id="standbyFeaturesLabel"
+                    translation="[500, 724]"
+                    width="920"
+                    horizAlign="center"
+                    text="Photos   |   Videos   |   Screen"
+                    color="0x76D7FFFF" />
 
-            <Label
-                id="eyebrowLabel"
-                translation="[174, 308]"
-                width="940"
-                text="ScreenCastTV Receiver"
-                color="0x8EB7EFFF" />
+                <Label
+                    id="standbyAssistLabel"
+                    translation="[520, 792]"
+                    width="880"
+                    horizAlign="center"
+                    text="Make sure your iPhone and Roku are on the same Wi-Fi."
+                    color="0x8FAFCDFF" />
+            </Group>
 
-            <Label
-                id="titleLabel"
-                translation="[174, 358]"
-                width="980"
-                numLines="2"
-                text="Ready to connect"
-                color="0xFFFFFFFF" />
+            <Group id="statusPanelGroup" visible="false">
+                <Rectangle
+                    id="panelShadow"
+                    width="980"
+                    height="430"
+                    translation="[470, 300]"
+                    color="0x04070B99" />
 
-            <Label
-                id="messageLabel"
-                translation="[174, 444]"
-                width="980"
-                numLines="3"
-                text="Open ScreenCastTV on iPhone and connect to this Roku."
-                color="0xD7E1F5FF" />
+                <Rectangle
+                    id="panel"
+                    width="980"
+                    height="430"
+                    translation="[458, 288]"
+                    color="0x13213AF5" />
 
-            <Rectangle
-                id="footerDivider"
-                width="1100"
-                height="2"
-                translation="[174, 576]"
-                color="0x27405FFF" />
+                <Rectangle
+                    id="panelAccent"
+                    width="980"
+                    height="8"
+                    translation="[458, 288]"
+                    color="0x58CCFFFF" />
 
-            <Label
-                id="hintLabel"
-                translation="[174, 602]"
-                width="780"
-                numLines="2"
-                text="Use contentID=review-demo during development to test playback."
-                color="0x8EB7EFFF" />
+                <Rectangle
+                    id="statusPill"
+                    width="182"
+                    height="48"
+                    translation="[830, 360]"
+                    color="0x27405FFF" />
 
-            <Label
-                id="versionLabel"
-                translation="[974, 602]"
-                width="300"
-                horizAlign="right"
-                text="Version 1.1.4"
-                color="0x8EB7EFFF" />
+                <BusySpinner
+                    id="spinner"
+                    translation="[1174, 362]"
+                    visible="false" />
+
+                <Poster
+                    id="statusIconPoster"
+                    uri="pkg:/images/ios-icon.png"
+                    translation="[586, 360]"
+                    width="160"
+                    height="160"
+                    loadDisplayMode="scaleToFit" />
+
+                <Label
+                    id="statusLabel"
+                    translation="[854, 370]"
+                    width="132"
+                    horizAlign="center"
+                    text="Loading"
+                    color="0xF4F8FFFF" />
+
+                <Label
+                    id="eyebrowLabel"
+                    translation="[786, 438]"
+                    width="500"
+                    text="ScreenCastTV Receiver"
+                    color="0x8EB7EFFF" />
+
+                <Label
+                    id="titleLabel"
+                    translation="[786, 492]"
+                    width="500"
+                    numLines="2"
+                    text="Loading session..."
+                    color="0xFFFFFFFF" />
+
+                <Label
+                    id="messageLabel"
+                    translation="[786, 596]"
+                    width="500"
+                    numLines="3"
+                    text="Fetching ScreenCastTV session details."
+                    color="0xD7E1F5FF" />
+
+                <Rectangle
+                    id="footerDivider"
+                    width="700"
+                    height="2"
+                    translation="[586, 668]"
+                    color="0x27405FFF" />
+
+                <Label
+                    id="hintLabel"
+                    translation="[586, 690]"
+                    width="700"
+                    horizAlign="center"
+                    numLines="2"
+                    text="This should only take a moment."
+                    color="0x8EB7EFFF" />
+            </Group>
         </Group>
+
+        <Timer
+            id="bootTimer"
+            duration="1.4"
+            repeat="false" />
 
         <SessionTask id="sessionTask" />
         <ControlPollTask id="controlTask" />

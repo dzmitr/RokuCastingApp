@@ -6,6 +6,9 @@ sub init()
     m.photoPosterB = m.top.findNode("photoPosterB")
     m.overlay = m.top.findNode("overlay")
     m.overlayScrim = m.top.findNode("overlayScrim")
+    m.bootSplashGroup = m.top.findNode("bootSplashGroup")
+    m.standbyGroup = m.top.findNode("standbyGroup")
+    m.statusPanelGroup = m.top.findNode("statusPanelGroup")
     m.panelAccent = m.top.findNode("panelAccent")
     m.statusPill = m.top.findNode("statusPill")
     m.statusLabel = m.top.findNode("statusLabel")
@@ -14,11 +17,11 @@ sub init()
     m.titleLabel = m.top.findNode("titleLabel")
     m.messageLabel = m.top.findNode("messageLabel")
     m.hintLabel = m.top.findNode("hintLabel")
-    m.versionLabel = m.top.findNode("versionLabel")
+    m.bootTimer = m.top.findNode("bootTimer")
     m.sessionTask = m.top.findNode("sessionTask")
     m.controlTask = m.top.findNode("controlTask")
 
-    m.state = "idle"
+    m.state = "boot"
     m.currentLaunchParams = invalid
     m.currentSession = invalid
     m.currentTitle = "Ready to connect"
@@ -33,24 +36,22 @@ sub init()
     m.activePhotoSlot = ""
     m.pendingPhotoSlot = ""
     m.ignoreStoppedTransition = false
-    m.versionText = "Version 1.1.6"
 
     if m.eyebrowLabel <> invalid
-        m.eyebrowLabel.text = "ScreenCastTV Receiver"
-    end if
-
-    if m.versionLabel <> invalid
-        m.versionLabel.text = m.versionText
+        m.eyebrowLabel.text = "TV Screen Mirror & Cast"
     end if
 
     m.top.observeField("launchParams", "onLaunchParamsChanged")
+    if m.bootTimer <> invalid
+        m.bootTimer.observeField("fire", "onBootTimerFired")
+    end if
     m.sessionTask.observeField("response", "onSessionTaskResponse")
     m.controlTask.observeField("command", "onControlCommand")
     m.video.observeField("state", "onVideoStateChanged")
     m.photoPosterA.observeField("loadStatus", "onPhotoPosterALoadStatusChanged")
     m.photoPosterB.observeField("loadStatus", "onPhotoPosterBLoadStatusChanged")
 
-    showIdleState()
+    showBootSplash()
 
     if m.top.launchParams <> invalid
         onLaunchParamsChanged()
@@ -64,27 +65,35 @@ end sub
 sub launchWithParams(params as dynamic)
     if not isAssociativeArray(params)
         m.retryContext = invalid
-        showIdleState()
+        if m.state <> "boot"
+            showIdleState()
+        end if
         return
     end if
 
     m.currentLaunchParams = params
     sessionSrc = trimText(params.src)
+    contentId = lowerText(params.contentID)
+    hasLaunchIntent = hasText(sessionSrc) or hasText(params.contentID) or hasText(params.mediaType) or hasText(params.title) or hasText(params.kind)
 
     if isFetchableSessionSrc(sessionSrc)
         m.retryContext = params
         beginSessionFetch(params)
-    else if lowerText(params.contentID) = "review-demo"
+    else if contentId = "review-demo"
         m.retryContext = params
         playVideoSession(buildReviewDemoSession(params), params)
     else
         m.retryContext = invalid
         if hasText(sessionSrc)
             print "[ScreenCastTV] ignoring non-session src=" + sessionSrc
-        else
+            showIdleState()
+        else if hasLaunchIntent
             print "[ScreenCastTV] no valid launch params, showing idle"
+            showIdleState()
+        else if m.state <> "boot"
+            print "[ScreenCastTV] no valid launch params, showing idle"
+            showIdleState()
         end if
-        showIdleState()
     end if
 end sub
 
@@ -309,7 +318,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
 
     lowerKey = lcase(key)
     if lowerKey = "back"
-        if m.state <> "idle"
+        if m.state <> "idle" and m.state <> "boot"
             print "[ScreenCastTV] stop / back"
             returnToIdle()
             return true
@@ -341,6 +350,9 @@ end sub
 
 sub prepareForPlaybackTransition(preserveVisiblePhoto = false as boolean)
     stopControlPolling()
+    if m.bootTimer <> invalid
+        m.bootTimer.control = "stop"
+    end if
     m.pendingRequestId = ""
     m.lastVideoState = ""
     m.ignoreStoppedTransition = false
@@ -367,12 +379,35 @@ sub prepareForPlaybackTransition(preserveVisiblePhoto = false as boolean)
     end if
 end sub
 
+sub showBootSplash()
+    m.retryContext = invalid
+    if m.bootTimer <> invalid
+        m.bootTimer.control = "stop"
+    end if
+    setViewState("boot", "", "", "")
+    if m.bootTimer <> invalid
+        m.bootTimer.control = "start"
+    end if
+end sub
+
+sub onBootTimerFired()
+    if m.state = "boot"
+        showIdleState()
+    end if
+end sub
+
 sub showIdleState()
-    setViewState("idle", "Ready to connect", "Open ScreenCastTV on iPhone and connect to this Roku.", "Development shortcut: launch with contentID=review-demo to verify playback.")
+    if m.bootTimer <> invalid
+        m.bootTimer.control = "stop"
+    end if
+    setViewState("idle", "Start from your iPhone", "Open Screen Mirroring: TV Air Cast on your iPhone to begin.", "Make sure your iPhone and Roku are on the same Wi-Fi.")
 end sub
 
 sub showErrorState(title as string, message as string)
     stopControlPolling()
+    if m.bootTimer <> invalid
+        m.bootTimer.control = "stop"
+    end if
 
     if m.video <> invalid
         m.video.control = "stop"
@@ -478,18 +513,34 @@ sub setViewState(nextState as string, title as string, message as string, hint a
     if m.panelAccent <> invalid
         m.panelAccent.color = stateAccentColor(nextState)
     end if
-    if m.versionLabel <> invalid
-        m.versionLabel.text = m.versionText
-    end if
 
     if nextState = "playing"
         m.overlay.visible = false
+        setOverlayGroupVisibility(false, false, false)
         m.spinner.visible = false
         m.spinner.control = "stop"
         return
     end if
 
     m.overlay.visible = true
+
+    if nextState = "boot"
+        m.overlayScrim.color = "0x09111C00"
+        setOverlayGroupVisibility(true, false, false)
+        m.spinner.visible = false
+        m.spinner.control = "stop"
+        return
+    end if
+
+    if nextState = "idle"
+        m.overlayScrim.color = "0x060B1318"
+        setOverlayGroupVisibility(false, true, false)
+        m.spinner.visible = false
+        m.spinner.control = "stop"
+        return
+    end if
+
+    setOverlayGroupVisibility(false, false, true)
 
     if nextState = "buffering"
         m.overlayScrim.color = "0x09111C88"
@@ -507,6 +558,20 @@ sub setViewState(nextState as string, title as string, message as string, hint a
         m.overlayScrim.color = "0x09111CD6"
         m.spinner.visible = false
         m.spinner.control = "stop"
+    end if
+end sub
+
+sub setOverlayGroupVisibility(showBoot as boolean, showStandby as boolean, showStatus as boolean)
+    if m.bootSplashGroup <> invalid
+        m.bootSplashGroup.visible = showBoot
+    end if
+
+    if m.standbyGroup <> invalid
+        m.standbyGroup.visible = showStandby
+    end if
+
+    if m.statusPanelGroup <> invalid
+        m.statusPanelGroup.visible = showStatus
     end if
 end sub
 
@@ -595,7 +660,7 @@ function resolveDisplayTitle(session as dynamic, params as dynamic) as string
         end if
     end if
 
-    return "ScreenCastTV Receiver"
+    return "TV Screen Mirror & Cast"
 end function
 
 function isLiveSession(session as object, params as object, lookup as object) as boolean
