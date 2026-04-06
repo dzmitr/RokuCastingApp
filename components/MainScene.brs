@@ -8,7 +8,12 @@ sub init()
     m.overlayScrim = m.top.findNode("overlayScrim")
     m.bootSplashGroup = m.top.findNode("bootSplashGroup")
     m.standbyGroup = m.top.findNode("standbyGroup")
+    m.handoffGroup = m.top.findNode("handoffGroup")
     m.statusPanelGroup = m.top.findNode("statusPanelGroup")
+    m.handoffSpinner = m.top.findNode("handoffSpinner")
+    m.handoffTitleLabel = m.top.findNode("handoffTitleLabel")
+    m.handoffMessageLabel = m.top.findNode("handoffMessageLabel")
+    m.handoffHintLabel = m.top.findNode("handoffHintLabel")
     m.panelAccent = m.top.findNode("panelAccent")
     m.statusPill = m.top.findNode("statusPill")
     m.statusLabel = m.top.findNode("statusLabel")
@@ -108,7 +113,11 @@ sub beginSessionFetch(params as object)
         m.state = "playing"
         m.currentTitle = resolveDisplayTitle(invalid, params)
     else
-        setViewState("loading", resolveDisplayTitle(invalid, params), "Loading session...", "Fetching ScreenCastTV session details.")
+        nextState = "transition"
+        if shouldUseHandoffState(params)
+            nextState = "handoff"
+        end if
+        setViewState(nextState, resolveDisplayTitle(invalid, params), "Waiting to receive cast data from your iPhone.", "Playback will start automatically.")
     end if
 
     m.sessionTask.control = "STOP"
@@ -162,7 +171,7 @@ sub playVideoSession(session as object, params as object)
     m.video.content = content
     m.video.control = "play"
 
-    setViewState("loading", m.currentTitle, "Preparing playback...", "Waiting for the Roku video player to start.")
+    setViewState("handoff", m.currentTitle, "Waiting to receive cast data from your iPhone.", "Playback will start automatically.")
     startControlPolling(extractControlUrl(session))
 end sub
 
@@ -181,8 +190,9 @@ sub playPhotoSession(session as object, params as object)
     m.retryContext = params
     m.currentTitle = resolveDisplayTitle(session, params)
 
-    targetSlot = m.activePhotoSlot
-    if targetSlot = ""
+    if preserveVisiblePhoto
+        targetSlot = inactivePhotoSlot()
+    else
         targetSlot = "A"
     end if
     targetPoster = photoPosterForSlot(targetSlot)
@@ -196,15 +206,18 @@ sub playPhotoSession(session as object, params as object)
     end if
 
     resetPhotoLoadStatus(targetSlot)
-    targetPoster.opacity = 1
+    if preserveVisiblePhoto
+        targetPoster.opacity = 0
+    else
+        targetPoster.opacity = 1
+    end if
     targetPoster.visible = true
     targetPoster.uri = photoUrl
-    m.activePhotoSlot = targetSlot
-    m.pendingPhotoSlot = ""
+    m.pendingPhotoSlot = targetSlot
 
     inactiveSlot = inactivePhotoSlot()
     inactivePoster = photoPosterForSlot(inactiveSlot)
-    if inactivePoster <> invalid and inactiveSlot <> "" and inactiveSlot <> targetSlot
+    if inactivePoster <> invalid and inactiveSlot <> "" and inactiveSlot <> targetSlot and inactiveSlot <> m.activePhotoSlot
         inactivePoster.uri = ""
         inactivePoster.opacity = 1
         inactivePoster.visible = false
@@ -212,7 +225,11 @@ sub playPhotoSession(session as object, params as object)
     end if
 
     print "[ScreenCastTV] photo update url=" + photoUrl
-    setViewState("playing", m.currentTitle, "", "")
+    if preserveVisiblePhoto
+        setViewState("playing", m.currentTitle, "", "")
+    else
+        setViewState("transition", m.currentTitle, "", "")
+    end if
     startControlPolling(extractControlUrl(session))
 end sub
 
@@ -278,7 +295,6 @@ sub onVideoStateChanged()
         setViewState("playing", m.currentTitle, "", "")
     else if state = "buffering"
         print "[ScreenCastTV] buffering"
-        setViewState("buffering", m.currentTitle, "Buffering video...", "Network conditions changed. Playback should resume automatically.")
     else if state = "error"
         errorMessage = fallbackText(m.video.errorMsg, "The Roku video player could not start this stream.")
         print "[ScreenCastTV] playback error " + errorMessage
@@ -424,8 +440,25 @@ sub handlePhotoLoadStatusChange(posterSlot as string, poster as object)
 
     status = lowerText(poster.loadStatus)
     if status = "ready"
-        if posterSlot = m.activePhotoSlot or posterSlot = m.pendingPhotoSlot
+        if posterSlot = m.pendingPhotoSlot
+            previousActiveSlot = m.activePhotoSlot
+            previousActivePoster = photoPosterForSlot(previousActiveSlot)
+            if previousActivePoster <> invalid and previousActiveSlot <> "" and previousActiveSlot <> posterSlot
+                previousActivePoster.uri = ""
+                previousActivePoster.opacity = 1
+                previousActivePoster.visible = false
+                resetPhotoLoadStatus(previousActiveSlot)
+            end if
+
+            poster.opacity = 1
+            poster.visible = true
+            m.activePhotoSlot = posterSlot
+            m.pendingPhotoSlot = ""
             print "[ScreenCastTV] photo ready"
+            setViewState("playing", m.currentTitle, "", "")
+        else if posterSlot = m.activePhotoSlot
+            print "[ScreenCastTV] photo ready"
+            setViewState("playing", m.currentTitle, "", "")
         end if
     else if status = "failed"
         print "[ScreenCastTV] playback error The Roku image viewer could not load this photo."
@@ -433,10 +466,16 @@ sub handlePhotoLoadStatusChange(posterSlot as string, poster as object)
             poster.uri = ""
             poster.opacity = 1
             poster.visible = false
-            m.pendingPhotoSlot = ""
+            if posterSlot = m.pendingPhotoSlot
+                m.pendingPhotoSlot = ""
+            end if
             if posterSlot = m.activePhotoSlot
                 m.activePhotoSlot = ""
             end if
+        end if
+        if hasVisiblePhotoPoster()
+            setViewState("playing", m.currentTitle, "", "")
+            return
         end if
         showErrorState("Playback error", "The Roku image viewer could not load this photo.")
     end if
@@ -499,11 +538,36 @@ function shouldPreserveVisiblePhoto(params as dynamic) as boolean
     return resolvePlaybackKind(invalid, params) = "photo"
 end function
 
+function shouldUseHandoffState(params as dynamic) as boolean
+    return resolvePlaybackKind(invalid, params) <> "photo"
+end function
+
 sub setViewState(nextState as string, title as string, message as string, hint as string)
     m.state = nextState
     m.titleLabel.text = fallbackText(title, "ScreenCastTV Receiver")
     m.messageLabel.text = fallbackText(message, "")
     m.hintLabel.text = fallbackText(hint, "")
+    if m.handoffTitleLabel <> invalid
+        if nextState = "handoff"
+            m.handoffTitleLabel.text = "Waiting for your cast"
+        else
+            m.handoffTitleLabel.text = fallbackText(title, "Preparing your cast")
+        end if
+    end if
+    if m.handoffMessageLabel <> invalid
+        if nextState = "handoff"
+            m.handoffMessageLabel.text = "Receiving content from your iPhone."
+        else
+            m.handoffMessageLabel.text = fallbackText(message, "Waiting to receive cast data from your iPhone.")
+        end if
+    end if
+    if m.handoffHintLabel <> invalid
+        if nextState = "handoff"
+            m.handoffHintLabel.text = "Playback will start automatically."
+        else
+            m.handoffHintLabel.text = fallbackText(hint, "Playback will start automatically.")
+        end if
+    end if
     if m.statusLabel <> invalid
         m.statusLabel.text = stateBadgeText(nextState)
     end if
@@ -516,9 +580,13 @@ sub setViewState(nextState as string, title as string, message as string, hint a
 
     if nextState = "playing"
         m.overlay.visible = false
-        setOverlayGroupVisibility(false, false, false)
+        setOverlayGroupVisibility(false, false, false, false)
         m.spinner.visible = false
         m.spinner.control = "stop"
+        if m.handoffSpinner <> invalid
+            m.handoffSpinner.visible = false
+            m.handoffSpinner.control = "stop"
+        end if
         return
     end if
 
@@ -526,21 +594,57 @@ sub setViewState(nextState as string, title as string, message as string, hint a
 
     if nextState = "boot"
         m.overlayScrim.color = "0x09111C00"
-        setOverlayGroupVisibility(true, false, false)
+        setOverlayGroupVisibility(true, false, false, false)
         m.spinner.visible = false
         m.spinner.control = "stop"
+        if m.handoffSpinner <> invalid
+            m.handoffSpinner.visible = false
+            m.handoffSpinner.control = "stop"
+        end if
+        return
+    end if
+
+    if nextState = "transition"
+        m.overlayScrim.color = "0x000000FF"
+        setOverlayGroupVisibility(false, false, false, false)
+        m.spinner.visible = false
+        m.spinner.control = "stop"
+        if m.handoffSpinner <> invalid
+            m.handoffSpinner.visible = false
+            m.handoffSpinner.control = "stop"
+        end if
+        return
+    end if
+
+    if nextState = "handoff"
+        m.overlayScrim.color = "0x060B13C6"
+        setOverlayGroupVisibility(false, false, false, true)
+        m.spinner.visible = false
+        m.spinner.control = "stop"
+        if m.handoffSpinner <> invalid
+            m.handoffSpinner.visible = true
+            m.handoffSpinner.control = "start"
+        end if
         return
     end if
 
     if nextState = "idle"
         m.overlayScrim.color = "0x060B1318"
-        setOverlayGroupVisibility(false, true, false)
+        setOverlayGroupVisibility(false, true, false, false)
         m.spinner.visible = false
         m.spinner.control = "stop"
+        if m.handoffSpinner <> invalid
+            m.handoffSpinner.visible = false
+            m.handoffSpinner.control = "stop"
+        end if
         return
     end if
 
-    setOverlayGroupVisibility(false, false, true)
+    setOverlayGroupVisibility(false, false, true, false)
+    if m.handoffSpinner <> invalid
+        m.handoffSpinner.visible = false
+        m.handoffSpinner.control = "stop"
+    end if
 
     if nextState = "buffering"
         m.overlayScrim.color = "0x09111C88"
@@ -561,7 +665,7 @@ sub setViewState(nextState as string, title as string, message as string, hint a
     end if
 end sub
 
-sub setOverlayGroupVisibility(showBoot as boolean, showStandby as boolean, showStatus as boolean)
+sub setOverlayGroupVisibility(showBoot as boolean, showStandby as boolean, showStatus as boolean, showHandoff = false as boolean)
     if m.bootSplashGroup <> invalid
         m.bootSplashGroup.visible = showBoot
     end if
@@ -572,6 +676,10 @@ sub setOverlayGroupVisibility(showBoot as boolean, showStandby as boolean, showS
 
     if m.statusPanelGroup <> invalid
         m.statusPanelGroup.visible = showStatus
+    end if
+
+    if m.handoffGroup <> invalid
+        m.handoffGroup.visible = showHandoff
     end if
 end sub
 
@@ -820,6 +928,7 @@ end function
 
 function stateBadgeText(nextState as string) as string
     if nextState = "idle" then return "Standby"
+    if nextState = "transition" then return ""
     if nextState = "loading" then return "Loading"
     if nextState = "buffering" then return "Buffering"
     if nextState = "playing" then return "Playing"
@@ -828,6 +937,7 @@ function stateBadgeText(nextState as string) as string
 end function
 
 function stateBadgeColor(nextState as string) as string
+    if nextState = "transition" then return "0x00000000"
     if nextState = "loading" then return "0x234E7AFF"
     if nextState = "buffering" then return "0x615019FF"
     if nextState = "error" then return "0x6C2334FF"
@@ -835,6 +945,7 @@ function stateBadgeColor(nextState as string) as string
 end function
 
 function stateAccentColor(nextState as string) as string
+    if nextState = "transition" then return "0x00000000"
     if nextState = "loading" then return "0x58CCFFFF"
     if nextState = "buffering" then return "0xF2C14EFF"
     if nextState = "error" then return "0xF16C85FF"

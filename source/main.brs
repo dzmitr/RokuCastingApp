@@ -1,7 +1,7 @@
 sub Main(args as dynamic)
     launchParams = normalizeLaunchArgs(args)
 
-    print "[ScreenCastTV] app launch version=1.1.12"
+    print "[ScreenCastTV] app launch version=1.1.14"
     print "[ScreenCastTV] parsed params " + summarizeLaunchParams(launchParams)
 
     screen = CreateObject("roSGScreen")

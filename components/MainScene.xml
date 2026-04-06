@@ -107,6 +107,45 @@
                     color="0x8FAFCDFF" />
             </Group>
 
+            <Group id="handoffGroup" visible="false">
+                <Poster
+                    id="handoffIconPoster"
+                    uri="pkg:/images/ios-icon.png"
+                    translation="[848, 232]"
+                    width="224"
+                    height="224"
+                    loadDisplayMode="scaleToFit" />
+
+                <BusySpinner
+                    id="handoffSpinner"
+                    translation="[944, 498]"
+                    visible="true" />
+
+                <Label
+                    id="handoffTitleLabel"
+                    translation="[500, 578]"
+                    width="920"
+                    horizAlign="center"
+                    text="Preparing your cast"
+                    color="0xF4F8FFFF" />
+
+                <Label
+                    id="handoffMessageLabel"
+                    translation="[410, 648]"
+                    width="1100"
+                    horizAlign="center"
+                    text="Waiting to receive cast data from your iPhone."
+                    color="0xD7E4F7FF" />
+
+                <Label
+                    id="handoffHintLabel"
+                    translation="[520, 726]"
+                    width="880"
+                    horizAlign="center"
+                    text="Playback will start automatically."
+                    color="0x8FAFCDFF" />
+            </Group>
+
             <Group id="statusPanelGroup" visible="false">
                 <Rectangle
                     id="panelShadow"
