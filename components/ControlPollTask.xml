@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="ControlPollTask" extends="Task">
+    <interface>
+        <field id="config" type="assocarray" />
+        <field id="command" type="assocarray" />
+        <field id="active" type="boolean" value="false" />
+    </interface>
+
+    <script type="text/brightscript" uri="pkg:/components/ControlPollTask.brs" />
+</component>

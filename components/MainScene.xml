@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="MainScene" extends="Scene">
+    <interface>
+        <field id="launchParams" type="assocarray" />
+    </interface>
+
+    <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
+
+    <children>
+        <Rectangle
+            id="background"
+            width="1920"
+            height="1080"
+            color="0x09111CFF" />
+
+        <Rectangle
+            id="backgroundGlowLeft"
+            width="760"
+            height="760"
+            translation="[-80, -140]"
+            color="0x123E78AA" />
+
+        <Rectangle
+            id="backgroundGlowRight"
+            width="560"
+            height="560"
+            translation="[1480, 640]"
+            color="0x0E7A8F55" />
+
+        <Video
+            id="video"
+            width="1920"
+            height="1080"
+            visible="false" />
+
+        <Poster
+            id="photoPosterA"
+            width="1920"
+            height="1080"
+            loadDisplayMode="scaleToFit"
+            visible="false" />
+
+        <Poster
+            id="photoPosterB"
+            width="1920"
+            height="1080"
+            loadDisplayMode="scaleToFit"
+            visible="false" />
+
+        <Group id="overlay" visible="true">
+            <Rectangle
+                id="overlayScrim"
+                width="1920"
+                height="1080"
+                color="0x09111CD6" />
+
+            <Rectangle
+                id="panelShadow"
+                width="1280"
+                height="500"
+                translation="[118, 168]"
+                color="0x04070B99" />
+
+            <Rectangle
+                id="panel"
+                width="1280"
+                height="500"
+                translation="[104, 154]"
+                color="0x13213AF5" />
+
+            <Rectangle
+                id="panelAccent"
+                width="1280"
+                height="10"
+                translation="[104, 154]"
+                color="0x58CCFFFF" />
+
+            <Rectangle
+                id="statusPill"
+                width="220"
+                height="52"
+                translation="[174, 224]"
+                color="0x27405FFF" />
+
+            <BusySpinner
+                id="spinner"
+                translation="[1246, 226]"
+                visible="false" />
+
+            <Label
+                id="statusLabel"
+                translation="[204, 236]"
+                width="170"
+                text="Standby"
+                color="0xF4F8FFFF" />
+
+            <Label
+                id="eyebrowLabel"
+                translation="[174, 308]"
+                width="940"
+                text="ScreenCastTV Receiver"
+                color="0x8EB7EFFF" />
+
+            <Label
+                id="titleLabel"
+                translation="[174, 358]"
+                width="980"
+                numLines="2"
+                text="Ready to connect"
+                color="0xFFFFFFFF" />
+
+            <Label
+                id="messageLabel"
+                translation="[174, 444]"
+                width="980"
+                numLines="3"
+                text="Open ScreenCastTV on iPhone and connect to this Roku."
+                color="0xD7E1F5FF" />
+
+            <Rectangle
+                id="footerDivider"
+                width="1100"
+                height="2"
+                translation="[174, 576]"
+                color="0x27405FFF" />
+
+            <Label
+                id="hintLabel"
+                translation="[174, 602]"
+                width="780"
+                numLines="2"
+                text="Use contentID=review-demo during development to test playback."
+                color="0x8EB7EFFF" />
+
+            <Label
+                id="versionLabel"
+                translation="[974, 602]"
+                width="300"
+                horizAlign="right"
+                text="Version 1.1.4"
+                color="0x8EB7EFFF" />
+        </Group>
+
+        <SessionTask id="sessionTask" />
+        <ControlPollTask id="controlTask" />
+    </children>
+</component>
